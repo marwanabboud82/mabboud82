@@ -7,7 +7,7 @@ Created on Wed Jan  1 12:11:57 2020
 
 
 
-def   UpdateMarketSegmentParams(DMEMInterim,NewGIEUGMS,GIEU_CompanyData):
+def   UpdateMarketSegmentParams(DMEMInterim,PublishedGMS,GIEU_CompanyData):
 
     import pandas as pd
     import math
@@ -49,9 +49,9 @@ def   UpdateMarketSegmentParams(DMEMInterim,NewGIEUGMS,GIEU_CompanyData):
         
         
         if (DMEMInterim.loc[DMEMInterim['Market']==marketN,'DM/EM']=='DM').bool():
-            TmpGIEUGMS = NewGIEUGMS['Value']
+            TmpGIEUGMS = PublishedGMS.loc['DMGMS','$m']*1e+6
         elif(DMEMInterim.loc[DMEMInterim['Market']==marketN,'DM/EM']=='EM').bool():
-            TmpGIEUGMS = 0.5*NewGIEUGMS['Value']          
+            TmpGIEUGMS = PublishedGMS.loc['EMGMS','$m']*1e+6         
         LowerGMS = LowerGMScst*TmpGIEUGMS
         UpperGMS = UpperGMScst*TmpGIEUGMS
         LowerProxGMS = LowerProxGMScst*TmpGIEUGMS
@@ -110,11 +110,11 @@ def   UpdateMarketSegmentParams(DMEMInterim,NewGIEUGMS,GIEU_CompanyData):
             
         # 4-  Determine if Changes in the Segment Number of Companies are Requireds
     
-        blnSizeCheck=0
-        blnCoverageCheck=0
-        blnSizeCoverageCheck=0
-        blnIncreaseRequired=0
-        blnDecreaseRequired=0
+        blnSizeCheck=False
+        blnCoverageCheck=False
+        blnSizeCoverageCheck=False
+        blnIncreaseRequired=False
+        blnDecreaseRequired=False
             
         # Size check
         blnSizeCheck = (InitialData[marketN].loc['InitialMSSC'] >=  GMSLimits[marketN].loc['LowerGMS']) & \
@@ -139,16 +139,16 @@ def   UpdateMarketSegmentParams(DMEMInterim,NewGIEUGMS,GIEU_CompanyData):
         
         if (~blnSizeCoverageCheck).bool():
             # Test if Increase Required ( initialMSSC > 0.575GMS AND initialCoverage<80%) OR (initialMSSC > 1.15GMS)
-            blnIncreaseRequired = ((InitialData[marketN].loc['InitialMSSC'] > GMSLimits[marketN].loc['LowerProxGMS']) & \
+            blnIncreaseRequired = (((InitialData[marketN].loc['InitialMSSC'] > GMSLimits[marketN].loc['LowerProxGMS']) & \
             (InitialData[marketN].loc['InitialPctCoverage']< MinCoveragecst)) | \
-            (InitialData[marketN].loc['InitialMSSC']  > GMSLimits[marketN].loc['UpperGMS'])
-             # Test if Decrease Required ( initialMSSC < 1.0GMS AND initialCoverage>90%) OR (initialMSSC < 0.5GMS)
-            blnDecreaseRequired = ((InitialData[marketN].loc['InitialMSSC'] < GMSLimits[marketN].loc['UpperProxGMS']) & \
+            (InitialData[marketN].loc['InitialMSSC']  > GMSLimits[marketN].loc['UpperGMS'])).bool()
+            # Test if Decrease Required ( initialMSSC < 1.0GMS AND initialCoverage>90%) OR (initialMSSC < 0.5GMS)
+            blnDecreaseRequired = (((InitialData[marketN].loc['InitialMSSC'] < GMSLimits[marketN].loc['UpperProxGMS']) & \
             (InitialData[marketN].loc['InitialPctCoverage'] > MaxCoveragecst)) | \
-            (InitialData[marketN].loc['InitialMSSC']  <  GMSLimits[marketN].loc['LowerGMS'])
+            (InitialData[marketN].loc['InitialMSSC']  <  GMSLimits[marketN].loc['LowerGMS'])).bool()
             
             # If Increase Required
-            if(blnIncreaseRequired).bool():
+            if(blnIncreaseRequired):
                 print(marketN)
                 print('Increase')
                 # if initialMSSC > 1.15GMS
@@ -166,7 +166,7 @@ def   UpdateMarketSegmentParams(DMEMInterim,NewGIEUGMS,GIEU_CompanyData):
             # end If Inccrease
                     
             # If Decrease Required
-            if(blnDecreaseRequired).bool():
+            if(blnDecreaseRequired):
                 print(marketN)
                 print('Decrease')
                 # 5% max nb of companied to be deleted
@@ -174,7 +174,7 @@ def   UpdateMarketSegmentParams(DMEMInterim,NewGIEUGMS,GIEU_CompanyData):
                 SumFFMktCap=0
                 # if initialMSSC < 0.5GMS
                 if(InitialData[marketN].loc['InitialMSSC'] < GMSLimits[marketN].loc['LowerGMS']).bool():
-                    for rankT in range(int(InitialData[marketN].loc['InitialMSnbC']),int(InitialData[marketN].loc['InitialMSnbC']-Max5PcntDeleteCompaniesNb+1),-1):
+                    for rankT in range(int(InitialData[marketN].loc['InitialMSnbC']),int(InitialData[marketN].loc['InitialMSnbC']-Max5PcntDeleteCompaniesNb),-1):
                         print(rankT)
                         if(MIEU[marketN].company_full_mktcap[rankT-1] >= GMSLimits[marketN].loc['LowerGMS']).bool():
                             break
@@ -182,7 +182,7 @@ def   UpdateMarketSegmentParams(DMEMInterim,NewGIEUGMS,GIEU_CompanyData):
                         SumFFMktCap = SumFFMktCap + MIEU[marketN].FFCompMktCap[rankT-1]
                 # if initialCoverage > 90%                   
                 elif (InitialData[marketN].loc['InitialPctCoverage'] > MaxCoveragecst).bool():
-                    for rankT in range(int(InitialData[marketN].loc['InitialMSnbC']),int(InitialData[marketN].loc['InitialMSnbC']-Max5PcntDeleteCompaniesNb+1),-1):
+                    for rankT in range(int(InitialData[marketN].loc['InitialMSnbC']),int(InitialData[marketN].loc['InitialMSnbC']-Max5PcntDeleteCompaniesNb),-1):
                         print(rankT)
                         if( (MIEU[marketN].CoverageFFMktCap[rankT-1] <= MaxCoveragecst) | \
                                 (MIEU[marketN].company_full_mktcap[rankT-1] >= GMSLimits[marketN].loc['UpperProxGMS']) ).bool():
@@ -211,7 +211,7 @@ def   UpdateMarketSegmentParams(DMEMInterim,NewGIEUGMS,GIEU_CompanyData):
                     if( ~((RevisedMSSC> GMSLimits[marketN].loc['LowerGMS'].iloc[0]) | (SumFFMktCap >= 0.5*MaxSumFFMktCap).bool()) ):
                         MaxNbCompaniesToDelete = math.floor(0.2*InitialData[marketN].loc['InitialMSnbC'])
                         SumFFMktCapToDelete = 0
-                        for rankT in range(int(InitialData[marketN].loc['InitialMSnbC']),int(InitialData[marketN].loc['InitialMSnbC']-MaxNbCompaniesToDelete+1),-1):
+                        for rankT in range(int(InitialData[marketN].loc['InitialMSnbC']),int(InitialData[marketN].loc['InitialMSnbC']-MaxNbCompaniesToDelete),-1):
                             if (SumFFMktCapToDelete > 0.5*MaxSumFFMktCap).bool():
                                 break
                             

@@ -15,7 +15,9 @@ def AssessFinalInvestability(OutputUpdateSegmNbComp,OutputSizeSegmentAssignment)
         Market_SecurityData =  OutputFinalInvestability[mkt]['Market_SecurityData']
         SAIR_MSSC = OutputUpdateSegmNbComp[mkt]['FinalData'].loc['FinalMSSC'].iloc[0]
         Market_SecurityData['Final_FFmktCap']=Market_SecurityData['FF_MktCap_usd']*0
+        Market_SecurityData['Final_FF_Dist']=Market_SecurityData['FF_MktCap_usd']*0
         Market_SecurityData['Final_Test']=Market_SecurityData['FF_MktCap_usd']*0
+        
         
         # Minimum Free Float Market Cap: 
         # New: FFMktCap > 50% x SAIR MSSC, Existing: FFMktCap > 2/3*50% x SAIR MSSC
@@ -24,7 +26,9 @@ def AssessFinalInvestability(OutputUpdateSegmNbComp,OutputSizeSegmentAssignment)
         idxExistingSec  = ( (Market_SecurityData['Status']=='STD') | (Market_SecurityData['Status']=='SML') ).tolist()
         
         Market_SecurityData.loc[((Market_SecurityData['FF_MktCap_usd'] >= 0.5* SAIR_MSSC) & idxNewSec), 'Final_FFmktCap'] = 1
+        Market_SecurityData.loc[idxNewSec, 'Final_FF_Dist'] = (0.5* SAIR_MSSC) / Market_SecurityData.loc[idxNewSec,'FF_MktCap_usd'] -1
         Market_SecurityData.loc[((Market_SecurityData['FF_MktCap_usd'] >= 0.5* (2/3)* SAIR_MSSC) & idxExistingSec), 'Final_FFmktCap'] = 1
+        Market_SecurityData.loc[idxExistingSec, 'Final_FF_Dist'] = (0.5* (2/3)* SAIR_MSSC) / Market_SecurityData.loc[idxExistingSec,'FF_MktCap_usd'] -1
         
         
         # Minimum FIF: 
@@ -36,6 +40,8 @@ def AssessFinalInvestability(OutputUpdateSegmNbComp,OutputSizeSegmentAssignment)
         Market_SecurityData['Final_Test'] = Market_SecurityData['Final_FFmktCap']
     
         OutputFinalInvestability[mkt]['Market_SecurityData'] = Market_SecurityData
+        
+        print(mkt)
     
    
     return OutputFinalInvestability

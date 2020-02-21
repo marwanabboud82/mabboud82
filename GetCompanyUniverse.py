@@ -10,7 +10,7 @@ def GetCompanyUniverse (All_Data):
     #Sort STD, SC then Others to get correct flag for companies
     All_Data_Ranked = pd.concat( [All_Data[All_Data['Status']=='STD'], All_Data[All_Data['Status']=='SML'], \
     All_Data[All_Data['Status']=='MICRO'], All_Data[All_Data['Status']=='STD_SHADOW'], \
-    All_Data[All_Data['Status']=='SML_SHADOW']])
+    All_Data[All_Data['Status']=='SML_SHADOW'],All_Data[All_Data['Status']=='NEW']])
        
     All_Data_Ranked['num_sec_in_comp']= pd.DataFrame(All_Data_Ranked.groupby('msci_issuer_code')['msci_issuer_code'].transform('count'))
     All_Data_Ranked['Sum_FullMktCap_USD']=pd.DataFrame(All_Data_Ranked.groupby('msci_issuer_code')['initial_mkt_cap_usd_next_day'].transform('sum'))

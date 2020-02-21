@@ -3,20 +3,31 @@
 @author: mabboud
 """
 import pandas as pd
+import os
+import shutil
 
 def ReadInterim (TrackerFilePath,IntCalcDate,All_SecurityData,All_CompanyData):
+       
     
     # DM STD Interim File
-    DMSTDInterimPath = (TrackerFilePath.loc['DMSTDPath'] + IntCalcDate[0:2] + IntCalcDate[3:5]  +
-                 'd_tdrif\\' + IntCalcDate[0:2] + IntCalcDate[3:5] + 'd51d')
-    
-    Interim_DMSTD = ReadIntFile(DMSTDInterimPath[0])
+    #DMSTDInterimPath = (TrackerFilePath.loc['DMSTDPath'] + IntCalcDate[0:2] + IntCalcDate[3:5]  +
+    #             'd_tdrif\\' + IntCalcDate[0:2] + IntCalcDate[3:5] + 'd51d')
+    #Interim_DMSTD = ReadIntFile(DMSTDInterimPath[0])
+    dmstdzip = (TrackerFilePath.loc['DMSTDPath'] + IntCalcDate[0:2] + IntCalcDate[3:5] + 'd_tdrif.zip')
+    TmpFile = UnZipFile(dmstdzip[0])    
+    DMSTDInterimPath = (TmpFile + '\\'+IntCalcDate[0:2] + IntCalcDate[3:5] + 'd51d')
+    Interim_DMSTD = ReadIntFile(DMSTDInterimPath)
     Interim_DMSTD.loc[Interim_DMSTD['index_name'] == 'EUROPE MID CAP','index_name'] ='NOT TO BE USED'
     Interim_DMSTD.loc[Interim_DMSTD['index_name'] == 'FRANCE MID CAP','index_name'] ='EUROPE MID CAP'
     # EM STD Interim File
-    EMSTDInterimPath = (TrackerFilePath.loc['DMSTDPath'] + IntCalcDate[0:2] + IntCalcDate[3:5]  +
-                 'd_terif\\' + IntCalcDate[0:2] + IntCalcDate[3:5] + 'd51e')
-    Interim_EMSTD = ReadIntFile(EMSTDInterimPath[0])
+    #EMSTDInterimPath = (TrackerFilePath.loc['DMSTDPath'] + IntCalcDate[0:2] + IntCalcDate[3:5]  +
+    #             'd_terif\\' + IntCalcDate[0:2] + IntCalcDate[3:5] + 'd51e')
+    #Interim_EMSTD = ReadIntFile(EMSTDInterimPath[0])
+    emstdzip = (TrackerFilePath.loc['EMSTDPath'] + IntCalcDate[0:2] + IntCalcDate[3:5] + 'd_terif.zip')
+    TmpFile = UnZipFile(emstdzip[0])    
+    EMSTDInterimPath = (TmpFile + '\\'+IntCalcDate[0:2] + IntCalcDate[3:5] + 'd51e')
+    Interim_EMSTD = ReadIntFile(EMSTDInterimPath)
+    
     
     # Fill MSSC and MSNbC
     unqmkts = All_CompanyData['Market'].unique()
@@ -38,19 +49,22 @@ def ReadInterim (TrackerFilePath,IntCalcDate,All_SecurityData,All_CompanyData):
     EMMktCaps = DMEMInterim.loc[DMEMInterim['DM/EM']=='EM',['Market','MSSC']]
     EMMktCaps=EMMktCaps.sort_values('MSSC',ascending=True)
    
-    EMDuplicatesNb = EMMktCaps.pivot_table(index=['MSSC'], aggfunc='size')
-   
-    if(EMDuplicatesNb.tail(1)>1).bool():
-        EMGMSHigh= EMMktCaps.tail(1)
-        EMGMS = EMGMSHigh['MSSC']/1.15
-        DMGMS = 2 * EMGMS
-    elif((EMDuplicatesNb.tail(1)==1) & (EMDuplicatesNb.head(1)>1)).bool():
-        EMGMSLow = EMMktCaps.head(1)
-        EMGMS = EMGMSLow['MSSC'] * 2
-        DMGMS = 2 * EMGMS
+#    EMDuplicatesNb = EMMktCaps.pivot_table(index=['MSSC'], aggfunc='size')
+#   
+#    if(EMDuplicatesNb.tail(1)>1).bool():
+#        EMGMSHigh= EMMktCaps.tail(1)
+#        EMGMS = EMGMSHigh['MSSC']/1.15
+#        DMGMS = 2 * EMGMS
+#    elif((EMDuplicatesNb.tail(1)==1) & (EMDuplicatesNb.head(1)>1)).bool():
+#        EMGMSLow = EMMktCaps.head(1)
+#        EMGMS = EMGMSLow['MSSC'] * 2
+#        DMGMS = 2 * EMGMS
+    # HAVENT USED THIS FIELD BEFORE?
+    DMGMS =  Interim_DMSTD.loc[Interim_DMSTD['index_name'] == 'USA MID CAP','gmsr_usd'].iloc[0]
+    EMGMS = 0.5 * DMGMS
    
     gmsindex = ['DMGMSLow','DMGMS','DMGMSHigh','EMGMSLow','EMGMS','EMGMSHigh'] 
-    PublishedGMS = {'$m':[DMGMS[0]*0.5,DMGMS[0],DMGMS[0]*1.15,EMGMS[0]*0.5,EMGMS[0],EMGMS[0]*1.15]}
+    PublishedGMS = {'$m':[DMGMS*0.5,DMGMS,DMGMS*1.15,EMGMS*0.5,EMGMS,EMGMS*1.15]}
     PublishedGMS=  pd.DataFrame(PublishedGMS,index=gmsindex)
   
     # Include Them in the Security and Company Universe
@@ -72,6 +86,7 @@ def ReadInterim (TrackerFilePath,IntCalcDate,All_SecurityData,All_CompanyData):
     for mkt in DMEMInterim['Market']:
         tmpcomp = All_CompanyData[All_CompanyData['Market']==mkt]
         tmpcomp = tmpcomp.sort_values('company_full_mktcap', ascending=False)
+        tmpcomp = tmpcomp[tmpcomp['Status']!='NEW']
         CumFFMktCap = tmpcomp['FFCompMktCap'].cumsum()
         xxx=CumFFMktCap.tail(1)
         CoverageFFMktCap = CumFFMktCap / xxx.iloc[0]
@@ -85,6 +100,7 @@ def ReadInterim (TrackerFilePath,IntCalcDate,All_SecurityData,All_CompanyData):
     for mkt in DMEMInterim['Market']:
         tmpcomp = All_CompanyData[All_CompanyData['Market']==mkt]
         tmpcomp = tmpcomp.sort_values('company_full_mktcap', ascending=False)
+        tmpcomp = tmpcomp[tmpcomp['Status']!='NEW']        
         DMEMInterim.loc[mkt,'Ranked_MSSC'] = tmpcomp.iloc[int(DMEMInterim.loc[mkt,'MSnbC'])-1,tmpcomp.columns.get_loc("company_full_mktcap")]/1e+6
         DMEMInterim.loc[mkt,'Diff'] = int(DMEMInterim.loc[mkt,'Ranked_MSSC'] - DMEMInterim.loc[mkt,'MSSC'] )
         if ((DMEMInterim.loc[mkt,'Diff']!=0) & (int(DMEMInterim.loc[mkt,'MSSC'])==int(PublishedGMS.loc[DMEMInterim.loc[mkt,'DM/EM']+'GMSHigh']) )):
@@ -117,3 +133,22 @@ def ReadIntFile(filename):
         df[colname] = df[colname].apply(lambda x: x.strip() if isinstance(x, str) else x)
     df.drop(df.columns[0], axis=1, inplace=True)
     return df
+
+
+def get_fullname(x): 
+    return os.path.join('C:\\Users\\mabboud\\PycharmProjects\\Python\\MSCI\\Input\\',x)
+
+def UnZipFile(fname):
+    basefname=os.path.basename(fname)
+    targetdir = get_fullname('tmp')
+    try:
+        os.mkdir(targetdir)
+    except Exception as e:
+        pass
+    target=os.path.join(targetdir,basefname)
+    try:
+        shutil.copy(fname, target)
+    except Exception as e:
+        pass    
+    shutil.unpack_archive(target, extract_dir=target.replace('.zip', ''), format='zip')
+    return target.replace('.zip', '')

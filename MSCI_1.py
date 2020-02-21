@@ -5,6 +5,19 @@
 # libraries
 import pandas as pd
 import numpy as np
+from KDBData.bbo import BBODownload
+
+
+"""
+#####################
+# BBO
+#####################
+"""
+bbo = BBODownload(sDate = '2020-02-19', eDate = '2020-02-19', region='world').get()
+
+InputPath = 'C:\\Users\\mabboud\\PycharmProjects\\Python\\MSCI\\input\\'
+CalcDate='02/19/2020'
+IntCalcDate = '02/20/2020'
 
 """
 #####################
@@ -12,16 +25,17 @@ import numpy as np
 #####################
 """
 
+#DMSTDPath = 'C:\\Users\\mabboud\\PycharmProjects\\Python\\MSCI\\input\\'
+#EMSTDPath = 'C:\\Users\\mabboud\\PycharmProjects\\Python\\MSCI\\input\\'
+#DMSMLPath = 'C:\\Users\\mabboud\\PycharmProjects\\Python\\MSCI\\input\\'
+#EMSMLPath = 'C:\\Users\\mabboud\\PycharmProjects\\Python\\MSCI\\input\\'
 
-DMSTDPath = 'C:\\Users\\mabboud\\PycharmProjects\\Python\\MSCI\\input\\'
-EMSTDPath = 'C:\\Users\\mabboud\\PycharmProjects\\Python\\MSCI\\input\\'
-DMSMLPath = 'C:\\Users\\mabboud\\PycharmProjects\\Python\\MSCI\\input\\'
-EMSMLPath = 'C:\\Users\\mabboud\\PycharmProjects\\Python\\MSCI\\input\\'
+DMSTDPath = 'P:\\daily\\2020\\02\\'
+EMSTDPath = 'S:\\daily\\2020\\02\\'
+DMSMLPath = 'Q:\\daily\\2020\\02\\'
+EMSMLPath = 'T:\\daily\\2020\\02\\'
 
-CalcDate='01/14/2020'
-IntCalcDate = '01/15/2020'
-
-TrackerFilePathList = [DMSTDPath,DMSTDPath,DMSTDPath,DMSTDPath]
+TrackerFilePathList = [DMSTDPath,EMSTDPath,DMSMLPath,EMSMLPath]
 
 TrackerFilePath = pd.DataFrame(TrackerFilePathList) # Create DataFrame
 
@@ -46,6 +60,19 @@ from CleanTrackerFiles import CleanTrackerFiles
 Clean_Tracker_DMSTD,Clean_Tracker_DMSML,Clean_Tracker_EMSTD,Clean_Tracker_EMSML = CleanTrackerFiles (Tracker_DMSTD, Tracker_DMSML,Tracker_EMSTD, Tracker_EMSML)
 Clean_TrackerData = [Clean_Tracker_DMSTD,Clean_Tracker_DMSML,Clean_Tracker_EMSTD,Clean_Tracker_EMSML]
 Clean_TrackerData = pd.concat(Clean_TrackerData,axis=0,sort=False)
+del Clean_Tracker_DMSTD,Clean_Tracker_DMSML,Clean_Tracker_EMSTD,Clean_Tracker_EMSML
+
+"""
+#####################
+# GET IPOs & Merge
+#####################
+"""
+from GetIPOs import GetIPOs
+InceptionDate = '2019-09-01'
+IPOsDF = GetIPOs(bbo,InceptionDate)
+
+from MergeIPOs import MergeIPOs
+Clean_TrackerData = MergeIPOs(Clean_TrackerData,IPOsDF)
 
 
 """
@@ -54,7 +81,7 @@ Clean_TrackerData = pd.concat(Clean_TrackerData,axis=0,sort=False)
 #####################
 """
 from ReadCCS import ReadCCS
-CCS_Data= ReadCCS (TrackerFilePath)
+CCS_Data= ReadCCS (InputPath)
 
 
 """
@@ -62,21 +89,52 @@ CCS_Data= ReadCCS (TrackerFilePath)
 # MERGE CCS                 TO BE CHANGED AFTER RECEIVING FILE
 #####################
 """
-from MergeTFCCS2 import MergeTFCCS2
+from MergeTFCCS import MergeTFCCS
 from CntryMappings import GetCntryMap
 CntryMap=GetCntryMap()
 #All_SecurityData= MergeTFCCS (Clean_TrackerData,CCS_Data,CntryMap)
 
-All_SecurityData= MergeTFCCS2 (Clean_TrackerData,CCS_Data,CntryMap)
-xxx = CCS_Data.columns
+All_SecurityData= MergeTFCCS (bbo,TrackerFilePath,Clean_TrackerData,CCS_Data,CntryMap)
+ColumnsToUse = All_SecurityData.columns
+
 
 """
 #####################
 # Add ATVR/FoTR
 #####################
 """
-from GetATVRData import GetATVRData
-All_SecurityData= GetATVRData (All_SecurityData)
+tmpfilename= '20191101_20191129'
+ATVRDMSTDPath = 'P:\\history\\2019\\' + tmpfilename 
+ATVREMSTDPath = 'S:\\history\\2019\\'+ tmpfilename 
+ATVRDMSMLPath = 'Q:\\history\\2019\\'+ tmpfilename 
+ATVREMSMLPath = 'T:\\history\\2019\\'+ tmpfilename 
+
+
+ATVRTrackerFilePathList = [ATVRDMSTDPath,ATVREMSTDPath,ATVRDMSMLPath,ATVREMSMLPath]
+ATVRTrackerFilePath = pd.DataFrame(ATVRTrackerFilePathList) # Create DataFrame
+del ATVRDMSTDPath,ATVREMSTDPath,ATVRDMSMLPath,ATVREMSMLPath,ATVRTrackerFilePathList
+ATVRTrackerFilePath.index = ['ATVRDMSTDPath','ATVREMSTDPath','ATVRDMSMLPath','ATVREMSMLPath'] # change row names
+
+#from GetATVRData import GetATVRData
+#All_SecurityData= GetATVRData(All_SecurityData, CalcDate, ATVRTrackerFilePath,tmpfilename)
+from IndexRules.mmsci_rules import MSCIRules
+m = MSCIRules(todaydate=pd.to_datetime(CalcDate))
+All_SecurityData = m.get_atvr_data(All_SecurityData)
+
+NewColumnsToUse=ColumnsToUse.append(All_SecurityData.columns[1:6])
+All_SecurityData=All_SecurityData.reindex(columns=NewColumnsToUse)
+
+#import IndexRules.mmsci_rules as ss
+#import importlib
+#importlib.reload(ss)
+#m = ss.MSCIRules(todaydate=pd.to_datetime(CalcDate))
+"""
+#####################
+# Manual Override
+#####################
+"""
+from ManualOverride import ManualOverride
+All_SecurityData= ManualOverride(All_SecurityData, CalcDate, InputPath)
 
 """
 #####################
@@ -125,7 +183,7 @@ NewGIEUGMS = UpdateGMS(GIEU_CompanyData,GMSRankPrevSAIR)
 #####################
 """
 from UpdateMarketSegmentParams import UpdateMarketSegmentParams
-OutputUpdateSegmNbComp = UpdateMarketSegmentParams(DMEMInterim,NewGIEUGMS,GIEU_CompanyData)
+OutputUpdateSegmNbComp = UpdateMarketSegmentParams(DMEMInterim,PublishedGMS,GIEU_CompanyData)
 
 
 """
@@ -145,5 +203,20 @@ OutputSizeSegmentAssignment = SizeSegmentAssignment(OutputUpdateSegmNbComp,All_C
 from AssessFinalInvestability import AssessFinalInvestability
 OutputFinalInvestability = AssessFinalInvestability(OutputUpdateSegmNbComp,OutputSizeSegmentAssignment)
 
+"""
+#####################
+# Generate Output Monitor
+#####################
+"""
+from GenerateForecastMonitor import GenerateForecastMonitor
+OutputFinalMonitor = GenerateForecastMonitor(OutputUpdateSegmNbComp,OutputFinalInvestability)
+
+"""
+#####################
+# Print CSV Output
+#####################
+"""
+from PrintOutputMonitor import PrintOutputMonitor
+PrintOutput = PrintOutputMonitor(DMEMInterim,OutputFinalMonitor,OutputUpdateSegmNbComp,OutputFinalInvestability,CalcDate)
 
 

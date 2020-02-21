@@ -24,7 +24,9 @@ def  UpdateInvestableEquityUniverse(All_SecurityData,All_CompanyData,MSRRankPrev
     elif (CoverageFFMktCap.iloc[MSRRankPrevSAIR] > 0.9925).bool():
         MSRRankPrevSAIR = CoverageFFMktCap[CoverageFFMktCap['FFCompMktCap']<0.9925].count()+1
 
-    NewGIEUMSR = pd.DataFrame({'Rank':[(MSRRankPrevSAIR).iloc[0]],'MktCap':[DMCompanyData.iloc[MSRRankPrevSAIR,DMCompanyData.columns.get_loc('company_full_mktcap')].iloc[0]],'Coverage':[CoverageFFMktCap.iloc[MSRRankPrevSAIR].iloc[0].iloc[0]]})
+    #NewGIEUMSR = pd.DataFrame({'Rank':[(MSRRankPrevSAIR).iloc[0]],'MktCap':[DMCompanyData.iloc[MSRRankPrevSAIR,DMCompanyData.columns.get_loc('company_full_mktcap')].iloc[0]],'Coverage':[CoverageFFMktCap.iloc[MSRRankPrevSAIR].iloc[0].iloc[0]]})
+    NewGIEUMSR = pd.DataFrame({'Rank':[(MSRRankPrevSAIR)],'MktCap':[DMCompanyData.iloc[MSRRankPrevSAIR,DMCompanyData.columns.get_loc('company_full_mktcap')]],'Coverage':[CoverageFFMktCap.iloc[MSRRankPrevSAIR].iloc[0]]})
+    
     
     # 2- Updating the Equity Universe Minimum Free Float–Adjusted Market Capitalization
     NewGIEUMSR['MinFFMCR']=0.5 * NewGIEUMSR['MktCap']
@@ -158,7 +160,7 @@ def  UpdateInvestableEquityUniverse(All_SecurityData,All_CompanyData,MSRRankPrev
     AA_Sec_TempSort = All_SecurityData.sort_values(['msci_issuer_code', 'TestMinFIF','FF_MktCap_usd'], ascending=[True, False,False])
     AA_Comp_TempSort = AA_Sec_TempSort.drop_duplicates(subset=['msci_issuer_code'], keep='first')
     AA_Comp_TempSort= AA_Comp_TempSort[['msci_issuer_code','TestMinFIF']]
-    
+        
     All_CompanyData = All_CompanyData.merge(AA_Comp_TempSort[['msci_issuer_code','TestMinFIF']],how='left',left_on='msci_issuer_code',right_on='msci_issuer_code')
         
     del NewSec, ExistingSec, AA_Sec_TempSort, AA_Comp_TempSort
@@ -175,6 +177,8 @@ def  UpdateInvestableEquityUniverse(All_SecurityData,All_CompanyData,MSRRankPrev
     AllBasicTestComp =   All_CompanyData['TestvsMSRComp'] * All_CompanyData['TestvsFFMCRComp'] * \
     All_CompanyData['BasicATVRTest'] * All_CompanyData['TestMinFIF']
     All_CompanyData['All_BasicTest']= AllBasicTestComp
+    
+    
     
     
     return NewGIEUMSR, All_SecurityData, All_CompanyData
