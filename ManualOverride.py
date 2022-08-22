@@ -24,15 +24,35 @@ def ManualOverride (All_SecurityData, CalcDate, InputPath):
                 OldValue = All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,icol] 
                 NewValue = RowOverride[icol].iloc[0]
             
-                if(icol=='eod_number_of_shares_next_day'):
+                if(icol=='eod_number_of_shares_next_day'):                       
                     tempRatio = NewValue / OldValue
+                    OldValue2 = All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'initial_mkt_cap_usd_next_day'] 
                     All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'initial_mkt_cap_usd_next_day']  = All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'initial_mkt_cap_usd_next_day']  * tempRatio
+                    All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'initial_mkt_cap_loc_next_day']  = All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'initial_mkt_cap_loc_next_day']  * tempRatio
+                    All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'FF_MktCap_usd']  = All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'FF_MktCap_usd']  * tempRatio
+                    All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'company_full_mktcap']  = All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'company_full_mktcap']  + (All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'initial_mkt_cap_usd_next_day'] - OldValue2)                
                     All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'eod_number_of_shares_next_day']  = NewValue
                 
                 if(icol=='foreign_inc_factor_next_day'):
-                    tempRatio = NewValue / OldValue
-                    All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'FF_MktCap_usd']  = All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'FF_MktCap_usd']  * tempRatio
+                    if(OldValue.isna().bool()):
+                        tempRatio = NewValue 
+                        All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'FF_MktCap_usd']= All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'initial_mkt_cap_usd_next_day'] * NewValue
+                        
+                    else: 
+                        tempRatio = NewValue / OldValue
+                        All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'FF_MktCap_usd']  = All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'FF_MktCap_usd']  * tempRatio
                     All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'foreign_inc_factor_next_day']  = NewValue
+                    
+                if(icol=='foreign_ownership_limit'):
+                    tempRatio = NewValue / OldValue
+                    OldValue2= All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'foreign_inc_factor_next_day'] 
+                    All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'foreign_inc_factor_next_day']  = np.minimum(OldValue2,All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'foreign_ownership_limit'])
+                    print('HERE')
+                    print(All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'foreign_inc_factor_next_day'])
+                    NewValue2= All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'foreign_inc_factor_next_day'] 
+                    tempRatio2 = NewValue2 / OldValue2
+                    All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'FF_MktCap_usd']  = All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'FF_MktCap_usd']  * tempRatio2
+                    All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,'foreign_ownership_limit']  = NewValue
                     
                 if((icol=='12mATVR') | (icol=='3m_Q-4') | (icol=='3m_Q-3') | (icol=='3m_Q-2') | (icol=='3m_Q-1')):
                     All_SecurityData.loc[All_SecurityData['msci_security_code']==isec,icol]  = NewValue

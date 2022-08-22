@@ -62,11 +62,14 @@ def  PrintOutputMonitor(DMEMInterim,OutputFinalMonitor,OutputUpdateSegmNbComp,Ou
         Market_SecurityData =  OutputFinalInvestability[mkt]['Market_SecurityData']
         Market_CompanyData =  OutputFinalInvestability[mkt]['Market_CompanyData']
         MktMonitor = OutputFinalMonitor.loc[OutputFinalMonitor['Market']==mkt]
+        LiveCompMonitor = Market_CompanyData[['msci_issuer_code','bb_ticker','security_name','company_full_mktcap','Status','foreign_inc_factor_next_day','eod_number_of_shares_next_day','num_sec_in_comp','SAIR_Rank','Iter_Rank','P_USD']] 
+        
         
         Security_CompanyDetails = pd.ExcelWriter(OutputPath + '\\' + mkt + '_' + CalcDate[6:10]+CalcDate[3:5]+CalcDate[0:2] + '.xlsx', engine='xlsxwriter')
         Market_SecurityData.to_excel(Security_CompanyDetails, sheet_name='Security')
         Market_CompanyData.to_excel(Security_CompanyDetails, sheet_name='Company')
         MktMonitor.to_excel(Security_CompanyDetails, sheet_name='Monitor')
+        LiveCompMonitor.to_excel(Security_CompanyDetails, sheet_name='LiveMonitor')
 
         Security_CompanyDetails.save()
         

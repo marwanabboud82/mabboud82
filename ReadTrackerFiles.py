@@ -65,6 +65,12 @@ def UnZipFile(fname):
     except Exception as e:
         pass
     target=os.path.join(targetdir,basefname)
-    shutil.copy(fname, target)
+    try:
+        shutil.copy(fname, target)
+    except Exception as e:
+        pass    
     shutil.unpack_archive(target, extract_dir=target.replace('.zip', ''), format='zip')
     return target.replace('.zip', '')
+
+
+   

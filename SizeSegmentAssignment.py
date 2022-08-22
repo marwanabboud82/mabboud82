@@ -4,6 +4,7 @@
 """
 import pandas as pd
 import numpy as np
+from scipy.stats import norm
 
 def SizeSegmentAssignment(OutputUpdateSegmNbComp,All_CompanyData,All_SecurityData):
     
@@ -24,6 +25,10 @@ def SizeSegmentAssignment(OutputUpdateSegmNbComp,All_CompanyData,All_SecurityDat
         
         
         SAIR_MSSC = OutputUpdateSegmNbComp[mkt]['FinalData'].loc['FinalMSSC'].iloc[0]
+        SAIR_MSnbC = OutputUpdateSegmNbComp[mkt]['FinalData'].loc['FinalMSnbC'].iloc[0]
+        
+        MIEU['SAIR_MSSC']=SAIR_MSSC
+        MIEU['SAIR_MSnbC']=SAIR_MSnbC
         MIEU['Iter']=float("NaN")
         MIEU['Dist_1']=float("NaN")
         MIEU['Dist_2']=float("NaN")
@@ -62,8 +67,16 @@ def SizeSegmentAssignment(OutputUpdateSegmNbComp,All_CompanyData,All_SecurityDat
         
         MIEU= MIEU.sort_values(['Iter', 'company_full_mktcap'], ascending=[True, False])
         
+        
         MIEU['Iter_Rank'] = [i for i in range(1,MIEU.shape[0]+1)] 
         MIEU.loc[MIEU['Iter'].isna(),'Iter_Rank']=float("NAN")
+        
+        Market_SecurityData = pd.merge(Market_SecurityData,MIEU[['msci_issuer_code','SAIR_MSSC']],on='msci_issuer_code',how='left')
+        Market_CompanyData = pd.merge(Market_CompanyData,MIEU[['msci_issuer_code','SAIR_MSSC']],on='msci_issuer_code',how='left')
+
+        Market_SecurityData = pd.merge(Market_SecurityData,MIEU[['msci_issuer_code','SAIR_MSnbC']],on='msci_issuer_code',how='left')
+        Market_CompanyData = pd.merge(Market_CompanyData,MIEU[['msci_issuer_code','SAIR_MSnbC']],on='msci_issuer_code',how='left')
+
         
         Market_SecurityData = pd.merge(Market_SecurityData,MIEU[['msci_issuer_code','SAIR_Rank']],on='msci_issuer_code',how='left')
         Market_CompanyData = pd.merge(Market_CompanyData,MIEU[['msci_issuer_code','SAIR_Rank']],on='msci_issuer_code',how='left')
@@ -89,7 +102,6 @@ def SizeSegmentAssignment(OutputUpdateSegmNbComp,All_CompanyData,All_SecurityDat
         OutputSizeSegmentAssignment[mkt]['Market_CompanyData']=Market_CompanyData
         OutputSizeSegmentAssignment[mkt]['Market_SecurityData']=Market_SecurityData
         
-              
-   
+
     return OutputSizeSegmentAssignment
 

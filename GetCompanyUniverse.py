@@ -17,12 +17,14 @@ def GetCompanyUniverse (All_Data):
     All_Data_Ranked['Unlisted_FullMktCap_USD']= All_Data_Ranked['company_full_mktcap']- All_Data_Ranked['Sum_FullMktCap_USD']
     
     All_Data_Ranked['FFCompMktCap']=pd.DataFrame(All_Data_Ranked.groupby('msci_issuer_code')['FF_MktCap_usd'].transform('sum'))
+    All_Data_Ranked['P_USD']=All_Data_Ranked['price'] * All_Data_Ranked['initial_mkt_cap_usd_next_day'] / All_Data_Ranked['initial_mkt_cap_loc_next_day']
+    
     
     # Get unique company codes
     UnqCompCodes = All_Data['msci_issuer_code'].unique()
     #Get Company Universe
     Company_Data = All_Data_Ranked.drop_duplicates(subset=['msci_issuer_code'], keep='first')
-    Company_Data = Company_Data[['msci_issuer_code','bb_ticker','security_name','company_full_mktcap','Status','Size_Cap','ISO_country_symbol_next_day','Region','Market','InTF','foreign_inc_factor_next_day','eod_number_of_shares_next_day','num_sec_in_comp','Sum_FullMktCap_USD','Unlisted_FullMktCap_USD','FFCompMktCap']]
+    Company_Data = Company_Data[['msci_issuer_code','bb_ticker','security_name','company_full_mktcap','Status','Size_Cap','ISO_country_symbol_next_day','Region','Market','InTF','foreign_inc_factor_next_day','eod_number_of_shares_next_day','num_sec_in_comp','Sum_FullMktCap_USD','Unlisted_FullMktCap_USD','FFCompMktCap','P_USD']]
     Company_Data=Company_Data.sort_values('company_full_mktcap', ascending=False)
     
     

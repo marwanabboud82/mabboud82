@@ -5,9 +5,9 @@
 import pandas as pd
 import numpy as np
 
-def MergeTFCCS (bbo,TrackerFilePath,Clean_TrackerData,CCS_Data,CntryMap):
+def MergeTFCCS (bbo,TrackerFilePath,Clean_TrackerData,CCS_Data,CntryMap,sDate):
 
-    filebarra = ('C:\\Users\\mabboud\\PycharmProjects\\Python\\MSCI\\input\\barra_master_gemtr_20200204.pkl')
+    #filebarra = ('C:\\Users\\mabboud\\PycharmProjects\\Python\\MSCI\\input\\barra_master_gemtr_20201208.csv')
     
     
     # Add Barra ID if exists to TF   
@@ -33,9 +33,15 @@ def MergeTFCCS (bbo,TrackerFilePath,Clean_TrackerData,CCS_Data,CntryMap):
     TempDF['Barra_Id']= CCS_Data['Barra Id']
     TempDF['InTF']= 0
     
+    InCCSANDInIPOS=  (Temp_Clean_TrackerData['sedol_next_day'].isin(TempDF['sedol_next_day'])) \
+    & (Temp_Clean_TrackerData['Pro_Status']=='IPO')
+    Temp_Clean_TrackerData=Temp_Clean_TrackerData[~InCCSANDInIPOS]
+
     InCCSNotInTF = ~ TempDF['msci_security_code'].isin(Temp_Clean_TrackerData['msci_security_code'])
-    
     TempDF = TempDF[InCCSNotInTF]
+    
+  
+    
     ccsstartnb = TempDF.shape[0]
     print('CCS Start',ccsstartnb)
     
@@ -43,7 +49,11 @@ def MergeTFCCS (bbo,TrackerFilePath,Clean_TrackerData,CCS_Data,CntryMap):
     
     # barra master for CrossList
 
-    barramaster= pd.read_pickle(filebarra,compression='zip') 
+    from KDBData.barra import BarraMasterDownload ##to put on top with all other imports
+    b = BarraMasterDownload(sDate=sDate,eDate=sDate,model='gemtr')
+    barramaster=b.get()
+    #barramaster= pd.read_csv(filebarra) 
+
     tmpbarra=barramaster.loc[(barramaster['barra_id'].isin(TempDF['Barra_Id']).astype(bool))]
     CrossListChk = tmpbarra.loc[tmpbarra['instrument']=='CROSS_LIST','barra_id']
     CrossListChk = CrossListChk.loc[CrossListChk!=""].tolist()
@@ -63,7 +73,8 @@ def MergeTFCCS (bbo,TrackerFilePath,Clean_TrackerData,CCS_Data,CntryMap):
     TempDF = TempDF.loc[~(BadGDRList & ~(AllowedForeignBool))]
     
     # barra country to iso country match
-    GoodMappingCheck = ['AT_AUT','AU_AUS','BE_BEL','BE_NLD','CA_CAN','CH_CHE','DE_DEU','DK_DNK','ES_ESP','FI_FIN','FR_FRA','FR_NLD','GB_GBR','HK_HKG','HK_NOR','HK_SGP','HK_USA','IE_IRL','IL_AUS','IL_BEL','IL_HKG','IL_ISR','IL_SGP','IL_SWE','IL_GBR','IL_USA','IT_ITA','JP_JPN','NL_NLD','NL_USA','NO_NOR','NZ_NZL','PT_PRT','SE_SWE','SG_SGP','US_USA','AE_ARE','AR_USA','BR_BRA','CL_CHL','CN_CHN','CN_HKG','CN_SGP','CN_USA','CO_COL','CZ_CZE','EG_EGY','GR_GRC','HU_HUN','ID_IDN','IN_IND','KR_KOR','MX_MEX','MY_MYS','PE_USA','PH_PHL','PK_PAK','PL_POL','QA_QAT','RU_RUS','RU_GBR','RU_USA','SA_SAU','TH_THA','TR_TUR','TW_TWN','ZA_ZAF']    
+    #GoodMappingCheck = ['AT_AUT','AU_AUS','BE_BEL','BE_NLD','CA_CAN','CH_CHE','DE_DEU','DK_DNK','ES_ESP','FI_FIN','FR_FRA','FR_NLD','GB_GBR','HK_HKG','HK_NOR','HK_SGP','HK_USA','IE_IRL','IL_AUS','IL_BEL','IL_HKG','IL_ISR','IL_SGP','IL_SWE','IL_GBR','IL_USA','IT_ITA','JP_JPN','NL_NLD','NL_USA','NO_NOR','NZ_NZL','PT_PRT','SE_SWE','SG_SGP','US_USA','AE_ARE','AR_USA','BR_BRA','CL_CHL','CN_CHN','CN_HKG','CN_SGP','CN_USA','CO_COL','CZ_CZE','EG_EGY','GR_GRC','HU_HUN','ID_IDN','IN_IND','KR_KOR','MX_MEX','MY_MYS','PE_USA','PH_PHL','PK_PAK','PL_POL','QA_QAT','RU_RUS','RU_GBR','RU_USA','SA_SAU','TH_THA','TR_TUR','TW_TWN','ZA_ZAF']    
+    GoodMappingCheck = ['AE_ARE','AR_USA','AT_AUT','AU_AUS','BA_BIH','BD_BGD','BE_BEL','BE_NLD','BG_BGR','BH_BHR','BH_KWT','BR_BRA','BW_BWA','CA_CAN','CH_CHE','CL_CHL','CN_CHN','CN_HKG','CN_SGP','CN_USA','CO_COL','CZ_CZE','DE_DEU','DK_DNK','EE_EST','EG_EGY','ES_ESP','FI_FIN','FR_FRA','FR_NLD','GB_GBR','GR_GRC','HK_HKG','HK_SGP','HK_USA','HR_HRV','HU_HUN','ID_IDN','IE_IRL','IL_HKG','IL_ISR','IL_USA','IN_IND','IS_DNK','IS_ISL','IT_ITA','JM_JAM','JO_JOR','JP_JPN','KE_KEN','KR_KOR','KW_KWT','LB_LBN','LK_LKA','LT_LTU','MA_MAR','MU_MUS','MU_ZAF','MX_MEX','MY_MYS','NG_NGA','NL_NLD','NL_USA','NO_NOR','NZ_NZL','OM_OMN','PE_USA','PH_PHL','PK_PAK','PL_POL','PS_PSE','PT_PRT','QA_QAT','RO_ROU','RS_SRB','RU_GBR','RU_RUS','RU_USA','SA_SAU','SE_SWE','SG_HKG','SG_SGP','SG_USA','SI_SVN','TH_THA','TN_TUN','TR_TUR','TT_TTO','TW_TWN','UA_POL','US_USA','VN_VNM','ZA_ZAF']    
     Temp_CCS_BarraCntry = TempDF.merge(tmpbarra[['barra_id','country']],how='left',left_on='Barra_Id',right_on='barra_id')
     # remove the ones not in barra they re either delisted aquired etc....
     xxx = ((Temp_CCS_BarraCntry['country']!="") & (~(Temp_CCS_BarraCntry['country'].isna())))
@@ -112,6 +123,10 @@ def MergeTFCCS (bbo,TrackerFilePath,Clean_TrackerData,CCS_Data,CntryMap):
     print('BadExch' , sum(BadExch))
     TempDF = TempDF.loc[~(BadExch)]
         
+    
+    
+    
+    
     # foreign listing
     ForeignExchInNames = ['(AE)','(AR)','(AU)','(BE)','(CA)','(CH)','(CL)','(CN)','(CO)','(DE)','(EG)','(ES)','(FR)','(GB)','(GR)','(HK)','(ID)','(IE)','(IL)','(IS)','(IT)','(JP)','(KR)','(KW)','(KZ)','(MX)','(MY)','(NG)','(NL)','(NO)','(NZ)','(PE)','(PH)','(PK)','(RU)','(SE)','(SG)','(US)','(ZA)']
     AllowedForeign = ['AR','IL','RU','CN','NL','HK']
@@ -120,8 +135,7 @@ def MergeTFCCS (bbo,TrackerFilePath,Clean_TrackerData,CCS_Data,CntryMap):
     print('BadExch' , sum((IncludeForeignExchangeInName & ~(AllowedForeignBool))))
     TempDF = TempDF.loc[~(IncludeForeignExchangeInName & ~(AllowedForeignBool))]
     
-    
-    
+
     
     # BDCs in US
     # Get Sedols from Barra if not in CCS
@@ -186,14 +200,21 @@ def MergeTFCCS (bbo,TrackerFilePath,Clean_TrackerData,CCS_Data,CntryMap):
     #### USE BBO to fill fields
     TempDF = FillFieldsBBO(bbo,TempDF)
     
-    ### Merge with TF
+        
     
+    ### Merge with TF     
     
     AllData = MergeCCSBBO(TempDF,Temp_Clean_TrackerData)
  
     AllData = AllData.merge(CntryMap[['ISO_Country','Market','Region']],how='left',left_on='ISO_country_symbol_next_day',right_on='ISO_Country')
     AllData.drop(['ISO_Country'], inplace=True, axis=1)
     
+    ### Include the FOL concept.
+    IsInCCS =  AllData['Pro_Status']=='CCS'
+    AllData.loc[IsInCCS,'foreign_inc_factor_next_day'] = np.minimum(AllData.loc[IsInCCS,'foreign_inc_factor_next_day'],AllData.loc[IsInCCS,'foreign_ownership_limit'])
+    AllData.loc[IsInCCS,'foreign_inc_factor_next_day'] = np.minimum(AllData.loc[IsInCCS,'foreign_inc_factor_next_day'],1)       
+    
+        
     AllData[['initial_mkt_cap_usd_next_day','foreign_inc_factor_next_day']]=AllData[['initial_mkt_cap_usd_next_day','foreign_inc_factor_next_day']].astype(float)
     AllData['FF_MktCap_usd']= AllData['initial_mkt_cap_usd_next_day'] * AllData['foreign_inc_factor_next_day']
     
@@ -204,10 +225,22 @@ def MergeTFCCS (bbo,TrackerFilePath,Clean_TrackerData,CCS_Data,CntryMap):
     IPOsDuplicateofCCS = (AllData['Pro_Status']=='IPO') &  AllData['sedol_next_day'].isin(IPOAllData.loc[InIPOandInCCS,'sedol_next_day']) 
     AllData = AllData.loc[~IPOsDuplicateofCCS]
     
+        # exclued the local listings of the current IMI ADRs in MSCI China (BABA JD etc ...)
+    InChinaIMIADR = (AllData['alternate_listing']=='ADR') & (AllData['ISO_country_symbol_next_day']=='CN') 
+    MSCICompCodes = AllData.loc[InChinaIMIADR,'msci_issuer_code']
+    DupCodes = (AllData['msci_issuer_code'].isin(MSCICompCodes))
+    AllData=AllData.loc[~((DupCodes) & (AllData['Status']=='NEW'))]
+    
     #AllData['msci_security_code']=np.where(AllData['Pro_Status']!='IPO',pd.to_numeric(NonIPOData['msci_security_code']).astype(np.int64).astype(str),AllData['msci_security_code'])
     #NonIPOData = AllData.loc[AllData['Pro_Status']!='IPO'].copy()#,'msci_security_code'].str[:-2]
     #NonIPOData['msci_security_code']=pd.to_numeric(NonIPOData['msci_security_code']).astype(np.int64)
     
+    # We call df your dataframe you want to sort
+    orderdf =pd.DataFrame({'Status':['STD','SML','STD_SHADOW','SML_SHADOW','MICRO','NEW'],'Order':[1,2,3,4,5,6]})
+    AllData=AllData.merge(orderdf,on='Status',how='left')
+    AllData=AllData.sort_values('Order')
+    AllData=AllData.drop_duplicates(subset=['msci_security_code'])
+    AllData = AllData.drop(columns=['Order'])
     
     
     return  AllData
@@ -240,7 +273,7 @@ def FillFieldsBBO(bbo,TTTDF):
         'sedol1CountryIso': 'ISO_country_symbol_next_day',
         'secMktCap': 'initial_mkt_cap_usd_next_day',
         'secMktCapLoc': 'initial_mkt_cap_loc_next_day',
-        'compMktCap': 'company_full_mktcap',
+        'compMktCapBBG': 'company_full_mktcap',
         # 'RIC'
         'tickerAndExchCode': 'bb_ticker',
         'idSedol1': 'sedol_next_day',

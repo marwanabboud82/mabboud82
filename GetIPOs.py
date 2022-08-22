@@ -11,10 +11,10 @@ import numpy as np
 
 
 
-def GetIPOs(bbo,InceptionDate):
+def GetIPOs(bbo,InceptionDate,LastInceptionDate):
 
 
-    df = bbo[bbo['eqyInitPoDt'] > pd.to_datetime(InceptionDate)]
+    df = bbo[(bbo['eqyInitPoDt'] > pd.to_datetime(InceptionDate))  & (bbo['eqyInitPoDt'] <= pd.to_datetime(LastInceptionDate))]
     df['secMktCapLoc'] = df['secMktCap'] / df['fxrate']
     renamedict = {
         'name': 'security_name',

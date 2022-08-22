@@ -7,7 +7,7 @@ import pandas as pd
 def ReadCCS (InputPath):
 
     # DM STD Tracker File
-    CCSPath = (InputPath +'1202d_36.59_.rif')
+    CCSPath = InputPath
 
     CCS_Data = pd.read_csv(CCSPath,sep=',',skiprows=15, header=None) # read securities
     

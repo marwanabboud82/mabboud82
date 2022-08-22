@@ -13,11 +13,13 @@ from KDBData.bbo import BBODownload
 # BBO
 #####################
 """
-bbo = BBODownload(sDate = '2020-02-19', eDate = '2020-02-19', region='world').get()
+sDate = '2022-08-18'
+
+bbo = BBODownload(sDate = sDate, eDate = sDate, region='world').get()
 
 InputPath = 'C:\\Users\\mabboud\\PycharmProjects\\Python\\MSCI\\input\\'
-CalcDate='02/19/2020'
-IntCalcDate = '02/20/2020'
+CalcDate='08/18/2022'
+IntCalcDate = '08/19/2022'
 
 """
 #####################
@@ -30,10 +32,10 @@ IntCalcDate = '02/20/2020'
 #DMSMLPath = 'C:\\Users\\mabboud\\PycharmProjects\\Python\\MSCI\\input\\'
 #EMSMLPath = 'C:\\Users\\mabboud\\PycharmProjects\\Python\\MSCI\\input\\'
 
-DMSTDPath = 'P:\\daily\\2020\\02\\'
-EMSTDPath = 'S:\\daily\\2020\\02\\'
-DMSMLPath = 'Q:\\daily\\2020\\02\\'
-EMSMLPath = 'T:\\daily\\2020\\02\\'
+DMSTDPath = 'P:\\daily\\2022\\08\\'
+EMSTDPath = 'S:\\daily\\2022\\08\\'
+DMSMLPath = 'Q:\\daily\\2022\\08\\'
+EMSMLPath = 'T:\\daily\\2022\\08\\'
 
 TrackerFilePathList = [DMSTDPath,EMSTDPath,DMSMLPath,EMSMLPath]
 
@@ -50,6 +52,13 @@ TrackerFilePath.index = ['DMSTDPath','EMSTDPath','DMSMLPath','EMSMLPath'] # chan
 """
 from ReadTrackerFiles import ReadTrackerFiles
 Tracker_DMSTD, Tracker_DMSML,Tracker_EMSTD, Tracker_EMSML = ReadTrackerFiles (CalcDate,TrackerFilePath)
+
+#from mmsci_rules import MSCIRules 
+#CalcDate = pd.to_datetime('2020-09-09')
+#m = MSCIRules(asofdate=CalcDate)
+#m.dmcoreonly=False
+#m.dmonly=False
+#Tracker_DMSTD_2, Tracker_DMSML_2,Tracker_EMSTD_2, Tracker_EMSML_2  =m.read()
 
 """
 #####################
@@ -68,8 +77,9 @@ del Clean_Tracker_DMSTD,Clean_Tracker_DMSML,Clean_Tracker_EMSTD,Clean_Tracker_EM
 #####################
 """
 from GetIPOs import GetIPOs
-InceptionDate = '2019-09-01'
-IPOsDF = GetIPOs(bbo,InceptionDate)
+InceptionDate = '2021-06-01'
+LastInceptionDate = '2022-05-31'
+IPOsDF = GetIPOs(bbo,InceptionDate,LastInceptionDate)
 
 from MergeIPOs import MergeIPOs
 Clean_TrackerData = MergeIPOs(Clean_TrackerData,IPOsDF)
@@ -81,7 +91,8 @@ Clean_TrackerData = MergeIPOs(Clean_TrackerData,IPOsDF)
 #####################
 """
 from ReadCCS import ReadCCS
-CCS_Data= ReadCCS (InputPath)
+InputPathCCS= (InputPath + '0606d_36.59_')
+CCS_Data= ReadCCS (InputPathCCS)
 
 
 """
@@ -94,9 +105,22 @@ from CntryMappings import GetCntryMap
 CntryMap=GetCntryMap()
 #All_SecurityData= MergeTFCCS (Clean_TrackerData,CCS_Data,CntryMap)
 
-All_SecurityData= MergeTFCCS (bbo,TrackerFilePath,Clean_TrackerData,CCS_Data,CntryMap)
+All_SecurityData= MergeTFCCS (bbo,TrackerFilePath,Clean_TrackerData,CCS_Data,CntryMap,sDate)
 ColumnsToUse = All_SecurityData.columns
 
+from mmsci_rules import MSCIRules 
+CalcDate2 = pd.to_datetime(sDate)
+m = MSCIRules(asofdate=CalcDate2)
+m.dmcoreonly=False
+m.dmonly=False
+Tracker_DMSTD_2, Tracker_DMSML_2,Tracker_EMSTD_2, Tracker_EMSML_2  =m.read()
+sachadf_ = pd.concat([Tracker_DMSTD_2, Tracker_DMSML_2,Tracker_EMSTD_2, Tracker_EMSML_2],axis=0,sort=False)
+sachadf=sachadf_[['msci_security_code','sedol']]
+sachadf['msci_security_code']=sachadf['msci_security_code'].astype(int).astype(str)
+All_SecurityData=All_SecurityData.merge(sachadf,on='msci_security_code',how='left')
+All_SecurityData['sedol']=All_SecurityData['sedol'].fillna(All_SecurityData['sedol_next_day'])
+All_SecurityData['sedol_next_day']=All_SecurityData['sedol']
+All_SecurityData = All_SecurityData.drop('sedol',axis=1)
 
 """
 #####################
@@ -203,13 +227,30 @@ OutputSizeSegmentAssignment = SizeSegmentAssignment(OutputUpdateSegmNbComp,All_C
 from AssessFinalInvestability import AssessFinalInvestability
 OutputFinalInvestability = AssessFinalInvestability(OutputUpdateSegmNbComp,OutputSizeSegmentAssignment)
 
+OutputFinalInvestability['AUSTRALIA']['Market_SecurityData']
+
 """
 #####################
 # Generate Output Monitor
 #####################
 """
 from GenerateForecastMonitor import GenerateForecastMonitor
-OutputFinalMonitor = GenerateForecastMonitor(OutputUpdateSegmNbComp,OutputFinalInvestability)
+OutputFinalMonitor = GenerateForecastMonitor(OutputUpdateSegmNbComp,OutputFinalInvestability,CalcDate2)
+
+""" #################################
+# Add Book positions
+#################################
+""" 
+from CommonLib.npositions import read_pos
+import pandas as pd
+
+posdf=read_pos(book='All')
+posdf=posdf[posdf['Qty'].abs()>0]
+posdf_ = posdf[['Sedol','Notional']]\
+    .rename(columns={'Sedol':'sedol_next_day','Notional':'bookPos'})
+posdf_ = posdf_.drop_duplicates(subset=['sedol_next_day']) # just in case
+OutputFinalMonitor = OutputFinalMonitor.merge(posdf_,on='sedol_next_day',how='left')
+
 
 """
 #####################
@@ -218,5 +259,3 @@ OutputFinalMonitor = GenerateForecastMonitor(OutputUpdateSegmNbComp,OutputFinalI
 """
 from PrintOutputMonitor import PrintOutputMonitor
 PrintOutput = PrintOutputMonitor(DMEMInterim,OutputFinalMonitor,OutputUpdateSegmNbComp,OutputFinalInvestability,CalcDate)
-
-

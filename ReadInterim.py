@@ -86,7 +86,7 @@ def ReadInterim (TrackerFilePath,IntCalcDate,All_SecurityData,All_CompanyData):
     for mkt in DMEMInterim['Market']:
         tmpcomp = All_CompanyData[All_CompanyData['Market']==mkt]
         tmpcomp = tmpcomp.sort_values('company_full_mktcap', ascending=False)
-        tmpcomp = tmpcomp[tmpcomp['Status']!='NEW']
+        tmpcomp = tmpcomp[(tmpcomp['Status']!='NEW') & (tmpcomp['foreign_inc_factor_next_day']>0)]
         CumFFMktCap = tmpcomp['FFCompMktCap'].cumsum()
         xxx=CumFFMktCap.tail(1)
         CoverageFFMktCap = CumFFMktCap / xxx.iloc[0]
@@ -100,7 +100,7 @@ def ReadInterim (TrackerFilePath,IntCalcDate,All_SecurityData,All_CompanyData):
     for mkt in DMEMInterim['Market']:
         tmpcomp = All_CompanyData[All_CompanyData['Market']==mkt]
         tmpcomp = tmpcomp.sort_values('company_full_mktcap', ascending=False)
-        tmpcomp = tmpcomp[tmpcomp['Status']!='NEW']        
+        tmpcomp = tmpcomp[(tmpcomp['Status']!='NEW') & (tmpcomp['foreign_inc_factor_next_day']>0) ]        
         DMEMInterim.loc[mkt,'Ranked_MSSC'] = tmpcomp.iloc[int(DMEMInterim.loc[mkt,'MSnbC'])-1,tmpcomp.columns.get_loc("company_full_mktcap")]/1e+6
         DMEMInterim.loc[mkt,'Diff'] = int(DMEMInterim.loc[mkt,'Ranked_MSSC'] - DMEMInterim.loc[mkt,'MSSC'] )
         if ((DMEMInterim.loc[mkt,'Diff']!=0) & (int(DMEMInterim.loc[mkt,'MSSC'])==int(PublishedGMS.loc[DMEMInterim.loc[mkt,'DM/EM']+'GMSHigh']) )):

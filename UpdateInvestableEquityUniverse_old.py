@@ -34,12 +34,12 @@ def  UpdateInvestableEquityUniverse(All_SecurityData,All_CompanyData,MSRRankPrev
     # 3- Evaluate Companies versus the MSR
     TestvsMSRComp = All_CompanyData['company_full_mktcap']*0
     TestvsMSRComp[ All_CompanyData['company_full_mktcap']>NewGIEUMSR['MktCap'].iloc[0]] =1
-    TestvsMSRComp[  (All_CompanyData['InTF']==1) & (All_CompanyData['Status']!='MICRO')] =1
+    TestvsMSRComp[ All_CompanyData['InTF']==1] =1
     All_CompanyData['TestvsMSRComp']=TestvsMSRComp
     
     TestvsMSRSec = All_SecurityData['company_full_mktcap']*0
     TestvsMSRSec[ All_SecurityData['company_full_mktcap']>NewGIEUMSR['MktCap'].iloc[0]] =1
-    TestvsMSRSec[ (All_SecurityData['InTF']==1) & (All_SecurityData['Status']!='MICRO')] =1 
+    TestvsMSRSec[ All_SecurityData['InTF']==1] =1
     All_SecurityData['TestvsMSRSec']=TestvsMSRSec
     
     del TestvsMSRComp,TestvsMSRSec
@@ -47,14 +47,14 @@ def  UpdateInvestableEquityUniverse(All_SecurityData,All_CompanyData,MSRRankPrev
     # 4- Evaluate Companies versus the MinFFMCR
     TestvsFFMCRComp = All_CompanyData['FFCompMktCap']*0
     TestvsFFMCRComp[ All_CompanyData['FFCompMktCap']>NewGIEUMSR['MinFFMCR'].iloc[0]] =1
-    TestvsFFMCRComp[  (All_CompanyData['InTF']==1) & (All_CompanyData['Status']!='MICRO')] =1
+    TestvsFFMCRComp[ All_CompanyData['InTF']==1] =1
     All_CompanyData['TestvsFFMCRComp']=TestvsFFMCRComp
       
     All_SecurityData[['company_full_mktcap','foreign_inc_factor_next_day']]=All_SecurityData[['company_full_mktcap','foreign_inc_factor_next_day']].astype(float)
     All_SecurityDataCompFFMktCap= All_SecurityData['company_full_mktcap'] * All_SecurityData['foreign_inc_factor_next_day']
     TestvsFFMCRSec = All_SecurityDataCompFFMktCap*0
     TestvsFFMCRSec[ All_SecurityDataCompFFMktCap>NewGIEUMSR['MinFFMCR'].iloc[0]] =1
-    TestvsFFMCRSec[  (All_SecurityData['InTF']==1) & (All_SecurityData['Status']!='MICRO')] =1
+    TestvsFFMCRSec[ All_SecurityData['InTF']==1] =1
     All_SecurityData['TestvsFFMCRSec']=TestvsFFMCRSec
     
     del TestvsFFMCRComp,TestvsFFMCRSec

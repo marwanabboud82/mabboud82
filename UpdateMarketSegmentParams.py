@@ -67,8 +67,8 @@ def   UpdateMarketSegmentParams(DMEMInterim,PublishedGMS,GIEU_CompanyData):
         # 2- Get Interim Values
     
         InterimMSnbC = DMEMInterim.loc[DMEMInterim['Market']==marketN,'MSnbC']
-        InterimMSSC = DMEMInterim.loc[DMEMInterim['Market']==marketN,'MSSC']
-        InterimPctCoverage =  MIEU[marketN].CoverageFFMktCap[InterimMSnbC-1]
+        InterimMSSC = DMEMInterim.loc[DMEMInterim['Market']==marketN,'Ranked_MSSC']
+        InterimPctCoverage =  DMEMInterim.loc[DMEMInterim['Market']==marketN,'FF_Coverage']
         TmpInterimData = [['InterimMSnbC',InterimMSnbC.iloc[0]],['InterimMSSC',InterimMSSC.iloc[0]],['InterimPctCoverage',InterimPctCoverage.iloc[0]]]
         TmpInterimData =pd.DataFrame(TmpInterimData)
         TmpInterimData.index = TmpInterimData[0]
@@ -82,21 +82,21 @@ def   UpdateMarketSegmentParams(DMEMInterim,PublishedGMS,GIEU_CompanyData):
         ### ROUND all market caps
         
         MIEU[marketN].company_full_mktcap=round(MIEU[marketN].company_full_mktcap)
-        InterimMSSC_in_Millions = round(DMEMInterim.loc[marketN,'MSSC'] * 1e+6)
+        InterimMSSC_in_Millions = round(DMEMInterim.loc[marketN,'Ranked_MSSC'] * 1e+6)
         GMSLimits[marketN]= round(GMSLimits[marketN])
     
     
         # Check vs Low GMS
-        
+        # IF YOU DOING SMALLCAP MAKE sURE TO cHANGE pos2
         
         if(InterimMSSC_in_Millions >=  GMSLimits[marketN].loc['LowerGMS']).bool():
             ChosenCompanyRank = MIEU[marketN].company_full_mktcap[MIEU[marketN].company_full_mktcap >= InterimMSSC_in_Millions ].count()
         else:
             pos1 = MIEU[marketN].company_full_mktcap[MIEU[marketN].company_full_mktcap >= GMSLimits[marketN].loc['LowerGMS'].iloc[0]].count()
                 
-            IMI_Tmp_MIEU = MIEU[marketN][(MIEU[marketN].Status=='STD') | (MIEU[marketN].Status=='SML')]
-            pos2 = IMI_Tmp_MIEU.company_full_mktcap[(IMI_Tmp_MIEU.company_full_mktcap <= GMSLimits[marketN].loc['LowerGMS'].iloc[0]) & \
-                                                 (IMI_Tmp_MIEU.company_full_mktcap >= InterimMSSC_in_Millions )].count()
+            STD_Tmp_MIEU = MIEU[marketN][(MIEU[marketN].Status=='STD')]
+            pos2 = STD_Tmp_MIEU.company_full_mktcap[(STD_Tmp_MIEU.company_full_mktcap <= GMSLimits[marketN].loc['LowerGMS'].iloc[0]) & \
+                                                 (STD_Tmp_MIEU.company_full_mktcap >= InterimMSSC_in_Millions )].count()
             ChosenCompanyRank = pos1 + pos2
         InitialMSnbC = ChosenCompanyRank     
         InitialMSSC =  MIEU[marketN].iloc[ChosenCompanyRank-1, MIEU[marketN].columns.get_loc("company_full_mktcap")]         
@@ -124,8 +124,8 @@ def   UpdateMarketSegmentParams(DMEMInterim,PublishedGMS,GIEU_CompanyData):
         (InitialData[marketN].loc['InitialPctCoverage'] <= MaxCoveragecst)
         # Proximity check
         blnProximityCheck = (blnSizeCheck & (~blnCoverageCheck)) & \
-        ( (InitialData[marketN].loc['InitialMSSC'] >=  GMSLimits[marketN].loc['LowerGMS']) & (InitialData[marketN].loc['InitialMSSC'] <=  GMSLimits[marketN].loc['LowerProxGMS']) ) | \
-        ( (InitialData[marketN].loc['InitialMSSC'] <=  GMSLimits[marketN].loc['UpperGMS']) & (InitialData[marketN].loc['InitialMSSC'] >=  GMSLimits[marketN].loc['UpperProxGMS']) ) 
+        ( (InitialData[marketN].loc['InitialPctCoverage'] < MinCoveragecst) & (InitialData[marketN].loc['InitialMSSC'] >=  GMSLimits[marketN].loc['LowerGMS']) & (InitialData[marketN].loc['InitialMSSC'] <=  GMSLimits[marketN].loc['LowerProxGMS']) ) | \
+        ( (InitialData[marketN].loc['InitialPctCoverage'] > MaxCoveragecst) & (InitialData[marketN].loc['InitialMSSC'] <=  GMSLimits[marketN].loc['UpperGMS']) & (InitialData[marketN].loc['InitialMSSC'] >=  GMSLimits[marketN].loc['UpperProxGMS']) ) 
         # Size and Coverage check
         blnSizeCoverageCheck = (blnSizeCheck & blnCoverageCheck) | blnProximityCheck
     
@@ -154,8 +154,9 @@ def   UpdateMarketSegmentParams(DMEMInterim,PublishedGMS,GIEU_CompanyData):
                 # if initialMSSC > 1.15GMS
                 if(InitialData[marketN].loc['InitialMSSC']  > GMSLimits[marketN].loc['UpperGMS']).bool():
                     RevisedMSnbC = MIEU[marketN].company_full_mktcap[MIEU[marketN].company_full_mktcap >= GMSLimits[marketN].loc['UpperGMS'].iloc[0]].count()             
+                    
                 # if initialCoverage < 80%
-                elif (InitialData[marketN].loc['InitialPctCoverage']< MinCoveragecst).bool():
+                if (InitialData[marketN].loc['InitialPctCoverage']< MinCoveragecst).bool():
                     # Check last company <80%
                     Rank1 = MIEU[marketN].company_full_mktcap[MIEU[marketN].CoverageFFMktCap < MinCoveragecst].count()
                     Rank2 = MIEU[marketN].company_full_mktcap[MIEU[marketN].company_full_mktcap >= GMSLimits[marketN].loc['LowerProxGMS'].iloc[0]].count()
@@ -174,16 +175,21 @@ def   UpdateMarketSegmentParams(DMEMInterim,PublishedGMS,GIEU_CompanyData):
                 SumFFMktCap=0
                 # if initialMSSC < 0.5GMS
                 if(InitialData[marketN].loc['InitialMSSC'] < GMSLimits[marketN].loc['LowerGMS']).bool():
-                    for rankT in range(int(InitialData[marketN].loc['InitialMSnbC']),int(InitialData[marketN].loc['InitialMSnbC']-Max5PcntDeleteCompaniesNb),-1):
+                    Lowernb = max(1,int(InitialData[marketN].loc['InitialMSnbC']-Max5PcntDeleteCompaniesNb-1))
+                    for rankT in range(int(InitialData[marketN].loc['InitialMSnbC']),Lowernb,-1):
                         print(rankT)
-                        if(MIEU[marketN].company_full_mktcap[rankT-1] >= GMSLimits[marketN].loc['LowerGMS']).bool():
-                            break
                         RevisedMSnbC = rankT
                         SumFFMktCap = SumFFMktCap + MIEU[marketN].FFCompMktCap[rankT-1]
+                        if(MIEU[marketN].company_full_mktcap[rankT-1] >= GMSLimits[marketN].loc['LowerGMS']).bool():
+                            SumFFMktCap = SumFFMktCap - MIEU[marketN].FFCompMktCap[rankT-1]
+                            break
+
                 # if initialCoverage > 90%                   
                 elif (InitialData[marketN].loc['InitialPctCoverage'] > MaxCoveragecst).bool():
                     for rankT in range(int(InitialData[marketN].loc['InitialMSnbC']),int(InitialData[marketN].loc['InitialMSnbC']-Max5PcntDeleteCompaniesNb),-1):
                         print(rankT)
+                        RevisedMSnbC = rankT #changed to here from below
+                        SumFFMktCap = SumFFMktCap + MIEU[marketN].FFCompMktCap[rankT-1] #changed to here from below
                         if( (MIEU[marketN].CoverageFFMktCap[rankT-1] <= MaxCoveragecst) | \
                                 (MIEU[marketN].company_full_mktcap[rankT-1] >= GMSLimits[marketN].loc['UpperProxGMS']) ).bool():
                             if (MIEU[marketN].CoverageFFMktCap[rankT-1] <= MaxCoveragecst):
@@ -192,8 +198,8 @@ def   UpdateMarketSegmentParams(DMEMInterim,PublishedGMS,GIEU_CompanyData):
                             
                             break
                         
-                        RevisedMSnbC = rankT
-                        SumFFMktCap = SumFFMktCap + MIEU[marketN].FFCompMktCap[rankT-1]
+                       # RevisedMSnbC = rankT # changed to above
+                       # SumFFMktCap = SumFFMktCap + MIEU[marketN].FFCompMktCap[rankT-1] # changed to above
                 
                 # Check if we removed at least half the free float-adjusted market capitalization that lies
                 # between the smallest company before the adjustment of the Initial MSnbC and the GMS Low
@@ -203,16 +209,18 @@ def   UpdateMarketSegmentParams(DMEMInterim,PublishedGMS,GIEU_CompanyData):
                     
                     if ( GMSLowRank > InitialData[marketN].loc['InitialMSnbC']).bool():
                         print('Invalid')
-                       
+                    MaxSumFFMktCap=0   
+                    Lowernb= max(1,int(GMSLowRank)-1)
+                    for i in range(int(InitialData[marketN].loc['InitialMSnbC']),Lowernb,-1): #for loop doesnt go to second nb thats why the -1
+                        print(i)
+                        MaxSumFFMktCap = MaxSumFFMktCap + MIEU[marketN].FFCompMktCap[i-1] 
+                                     
                     
-                    MaxSumFFMktCap = MIEU[marketN].FFCompMktCap[InitialData[marketN].loc['InitialMSnbC']-1] - \
-                                     MIEU[marketN].FFCompMktCap[GMSLowRank-1]
-                    
-                    if( ~((RevisedMSSC> GMSLimits[marketN].loc['LowerGMS'].iloc[0]) | (SumFFMktCap >= 0.5*MaxSumFFMktCap).bool()) ):
+                    if( ~((RevisedMSSC> GMSLimits[marketN].loc['LowerGMS'].iloc[0]) | (SumFFMktCap >= 0.5*MaxSumFFMktCap)) ):
                         MaxNbCompaniesToDelete = math.floor(0.2*InitialData[marketN].loc['InitialMSnbC'])
                         SumFFMktCapToDelete = 0
-                        for rankT in range(int(InitialData[marketN].loc['InitialMSnbC']),int(InitialData[marketN].loc['InitialMSnbC']-MaxNbCompaniesToDelete),-1):
-                            if (SumFFMktCapToDelete > 0.5*MaxSumFFMktCap).bool():
+                        for rankT in range(int(InitialData[marketN].loc['InitialMSnbC']),int(InitialData[marketN].loc['InitialMSnbC']-MaxNbCompaniesToDelete-1),-1):
+                            if (SumFFMktCapToDelete > 0.5*MaxSumFFMktCap):
                                 break
                             
                             SumFFMktCapToDelete = SumFFMktCapToDelete +   MIEU[marketN].FFCompMktCap[rankT-1]
